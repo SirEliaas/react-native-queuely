@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
-
-// import { Container } from './styles';
+import queuely from './queue';
 
 const Application: React.FC = () => {
+  useEffect(() => {
+    queuely.addJob("demo", {
+      name: "Elias",
+      idade: 22,
+      altura: 183,
+    });
+  }, []);
   return (
    <View></View>
   );
