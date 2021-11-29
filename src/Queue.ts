@@ -61,12 +61,27 @@ class Queue {
     if(!worker) throw new Error(`Worker (${workerName}) not found!`);
 
     const job = { id: uuid.v4(), worker: workerName, payload } as Job;
-    if(_.includes(this.jobs, job), 0) throw new Error("Job alredy is in queue");
+    if(this.checkJobExists(job)) return new Error("Job alredy exists to the worker");
 
     this.jobs = [...this.jobs, job];
-    if(!this.stopped) this.executeJob(job); 
+    if(!this.stopped) this.executeJobByWorker(workerName);
 
     return job;
+  };
+
+  private checkJobExists(job: Job): boolean {
+    let exists = false;
+
+    const jobs = this.getJobs;
+    for(let current of jobs) {
+      if(_.isEqual({worker: current.worker, payload: current.payload}, 
+      {worker: job.worker, payload: job.payload})) {
+        exists = true;
+        break;
+      };
+    };
+
+    return exists;
   };
 
   public get getJobs() {
@@ -77,40 +92,27 @@ class Queue {
     return this.jobs.find((value) => value.id === id);
   };
 
-  public async executeJob(job: Job) {
-    const worker = this.getWorker(job.worker);
-    if(!worker) throw new Error(`Worker (${job.worker}) not found!`);
-
-    // EXECUTE THE JOB
-    try {
-      this.toggleExecuting(true);
-      await worker.task(job.payload);
-    } catch(error) {
-      throw new Error(`Error on try to execute job (${job.id}): ${JSON.stringify(error)}`);
-    } finally {
-      this.onJobDone(job);
-    };
-  };
-
-  private toggleExecuting(status: boolean) {
-    if(this.isExecuting !== status) {
-      this.isExecuting = status;
-      this.onExecuteCallback(status);
-    };
+  public getJobsByWorker(worker: string) {
+    return this.jobs.filter((job) => job.worker === worker);
   };
 
   public onExecute(callback: (status: boolean) => any) {
     this.onExecuteCallback = callback;
   };
 
-  private onJobDone(job: Job) {
-    this.jobs = this.jobs.filter((value) => value.id !== job.id);
-    this.executed = [...this.executed, job];
+  private async executeJobByWorker(workerName: string) {
+    const worker = this.getWorker(workerName);
+    if(!worker) throw new Error(`Worker (${worker}) not found!`);
+
+    const jobs = this.getJobsByWorker(worker.name);
+    const concurrency = worker?.options?.concurrency || -1;
     
-    if(this.jobs.length > 0) {
-      this.executeJob(this.jobs[0])
-    } else {
-      this.stop();
+  };
+
+  private toggleExecuting(status: boolean) {
+    if(this.isExecuting !== status) {
+      this.isExecuting = status;
+      this.onExecuteCallback(status);
     };
   };
 };

@@ -15,7 +15,7 @@ const Application: React.FC = () => {
         altura: 183,
       });
 
-      queuely.addJob("demo", {
+      queuely.addJob("alpha", {
         name: "Elias",
         idade: 22,
         altura: 183,
