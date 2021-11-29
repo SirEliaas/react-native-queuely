@@ -5,23 +5,50 @@ import * as _ from 'lodash';
 
 interface ConfigureOptions {
   workers: Array<Worker>;
+  onQueueFinish?(jobs: Array<Job>): any;
 };
 
 class Queue {
   private workers = new Array<Worker>();
   private jobs = new Array<Job>();
 
-  private executing = false;
-  private executed = 0;
+  private isExecuting: boolean;
+  private stopped: boolean;
+  private executed: Array<Job>;
 
-  constructor() {};
+  private onQueueFinish: (jobs: Array<Job>) => any;
+  private onExecuteCallback: (status: boolean) => any;
 
-  public configure(options: ConfigureOptions) {
-    const {workers} = options;
-    this.workers = workers;
+  constructor() {
+    this.workers = new Array();
+    this.jobs = new Array();
+    this.executed = new Array();
+    this.isExecuting = false;
+    this.stopped = false;
+    this.onQueueFinish = () => {};
+    this.onExecuteCallback = () => {};
   };
 
-  public getWorkers() {
+  public configure(options: ConfigureOptions) {
+    const {
+      workers = new Array(),
+      onQueueFinish = () => {},
+    } = options;
+
+    this.workers = workers;
+    this.onQueueFinish = onQueueFinish;
+  };
+
+  public stop() {
+    this.stopped = false;
+    this.toggleExecuting(false);
+    if(this.executed.length > 0) {
+      this.onQueueFinish(this.executed);
+      this.executed = new Array();
+    };
+  };
+
+  public get getWorkers() {
     return this.workers;
   };
 
@@ -37,12 +64,12 @@ class Queue {
     if(_.includes(this.jobs, job), 0) return new Error("Job alredy is in queue");
 
     this.jobs = [...this.jobs, job];
-    this.executeJob(job);
+    if(!this.stopped) this.executeJob(job); 
 
     return job;
   };
 
-  public getJobs() {
+  public get getJobs() {
     return this.jobs;
   };
 
@@ -56,23 +83,32 @@ class Queue {
 
     // EXECUTE THE JOB
     try {
+      this.toggleExecuting(true);
       await worker.task(job.payload);
     } catch(error) {
       throw new Error(`Error on try to execute job (${job.id}): ${JSON.stringify(error)}`);
     } finally {
-      this.onJobDone(job.id);
+      this.onJobDone(job);
     };
   };
 
-  private onJobDone(id: string) {
-    this.jobs = this.jobs.filter((value) => value.id !== id);
-    this.executed = this.executed + 1;
+  private toggleExecuting(status: boolean) {
+    this.isExecuting = status;
+    this.onExecuteCallback(status);
+  };
+
+  public onExecute(callback: (status: boolean) => any) {
+    this.onExecuteCallback = callback;
+  };
+
+  private onJobDone(job: Job) {
+    this.jobs = this.jobs.filter((value) => value.id !== job.id);
+    this.executed = [...this.executed, job];
     
     if(this.jobs.length > 0) {
       this.executeJob(this.jobs[0])
     } else {
-      this.executing = false;
-      this.executed = 0;
+      this.stop();
     };
   };
 };
