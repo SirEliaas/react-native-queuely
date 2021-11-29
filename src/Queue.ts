@@ -61,7 +61,7 @@ class Queue {
     if(!worker) throw new Error(`Worker (${workerName}) not found!`);
 
     const job = { id: uuid.v4(), worker: workerName, payload } as Job;
-    if(_.includes(this.jobs, job), 0) return new Error("Job alredy is in queue");
+    if(_.includes(this.jobs, job), 0) throw new Error("Job alredy is in queue");
 
     this.jobs = [...this.jobs, job];
     if(!this.stopped) this.executeJob(job); 
@@ -93,8 +93,10 @@ class Queue {
   };
 
   private toggleExecuting(status: boolean) {
-    this.isExecuting = status;
-    this.onExecuteCallback(status);
+    if(this.isExecuting !== status) {
+      this.isExecuting = status;
+      this.onExecuteCallback(status);
+    };
   };
 
   public onExecute(callback: (status: boolean) => any) {
