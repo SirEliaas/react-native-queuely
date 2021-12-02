@@ -4,23 +4,24 @@ import queuely from './queue';
 
 const Application: React.FC = () => {
   queuely.onExecute((status) => {
-    console.log(status);
+    console.log('EXECUTANDO FILA: ', status);
   });
 
   useEffect(() => {
+    queuely.stop();
     setTimeout(() => {
+      queuely.addJob("alpha", {
+        name: "Matheus",
+        idade: 18,
+        altura: 178,
+      });
+
       queuely.addJob("demo", {
         name: "Elias",
         idade: 22,
         altura: 183,
       });
-
-      queuely.addJob("alpha", {
-        name: "Elias",
-        idade: 22,
-        altura: 183,
-      });
-    }, 3000);
+    }, 100);
   }, []);
   return (
    <View></View>

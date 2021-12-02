@@ -60,11 +60,13 @@ class Queue {
     const worker = this.getWorker(workerName);
     if(!worker) throw new Error(`Worker (${workerName}) not found!`);
 
-    const job = { id: uuid.v4(), worker: workerName, payload } as Job;
-    if(this.checkJobExists(job)) return new Error("Job alredy exists to the worker");
+    const job = { id: uuid.v4(), worker: worker.name, payload } as Job;
+    if(this.checkJobExists(job)) {
+      return new Error("Job alredy exists to the worker")
+    };
 
     this.jobs = [...this.jobs, job];
-    if(!this.stopped) this.executeJobByWorker(workerName);
+    this.startExecuteJobs();
 
     return job;
   };
@@ -100,13 +102,13 @@ class Queue {
     this.onExecuteCallback = callback;
   };
 
-  private async executeJobByWorker(workerName: string) {
-    const worker = this.getWorker(workerName);
-    if(!worker) throw new Error(`Worker (${worker}) not found!`);
-
-    const jobs = this.getJobsByWorker(worker.name);
-    const concurrency = worker?.options?.concurrency || -1;
+  private async startExecuteJobs() {
     
+  };
+
+  private onJobDone(job: Job) {
+    this.jobs = this.jobs.filter((current) => current.id !== job.id);
+    this.executed = [...this.executed, job];
   };
 
   private toggleExecuting(status: boolean) {

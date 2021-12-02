@@ -6,6 +6,8 @@ const DemoWorker = new Worker("demo", async (payload) => {
       resolve(console.log("EXECUTADO TAREFA (DEMO), PAYLOAD: ", payload));
     }, 5000);
   });
+}, {
+  concurrency: 2,
 });
 
 export default DemoWorker;
